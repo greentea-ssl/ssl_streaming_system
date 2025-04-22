@@ -1,0 +1,5 @@
+pyzmq
+protobuf
+PyYAML
+playsound3 # または代替
+# 必要に応じて他のライブラリ

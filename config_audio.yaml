@@ -1,0 +1,34 @@
+# 音声再生アクション定義
+event_actions:
+  # プロトタイプでテストするイベントの例
+  COMMAND_STOP:
+    action: play_file # 再生アクションを指定
+    files:
+      - path: "sounds/command/stop_call_1.wav" # ファイルパスは仮でOK (ログ出力用)
+      #- path: "sounds/command/stop_call_2.wav" # バリエーションも定義可能
+
+  STAGE_HALF_TIME:
+    action: play_file
+    files:
+      - path: "sounds/stage/halftime.wav"
+
+  EVENT_GOAL_CONFIRMED_YELLOW:
+    action: play_file
+    files:
+      - path: "sounds/event/goal_yellow_1.wav" # 複数のパスも定義可能
+      - path: "sounds/event/goal_yellow_2.wav"
+
+  EVENT_GOAL_CONFIRMED_BLUE:
+    action: play_file
+    files:
+      - path: "sounds/event/goal_blue_1.wav"
+
+  # 再生しないイベントの例 (プロトタイプで確認したいなら定義)
+  STAGE_FIRST_HALF:
+    action: ignore
+
+  # 他のイベントも必要に応じて定義...
+
+# デフォルトアクション
+DEFAULT_ACTION:
+  action: ignore # 未定義イベントは無視

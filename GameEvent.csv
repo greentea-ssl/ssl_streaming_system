@@ -1,0 +1,62 @@
+event_type,	data,	フィールド定義,	説明,	情報源,	(Protobuf)																						
+STAGE_FIRST_HALF_PRE,	{},	(空辞書),	前半開始前,	Referee.Stage																						
+STAGE_FIRST_HALF,	{"stage_time_left_us": Optional[int]},	前半実行中,	(Referee.Stage,	stage_time_left)																						
+STAGE_HALF_TIME,	{"stage_time_left_us": Optional[int]},	ハーフタイム,	(Referee.Stage,	stage_time_left)																						
+STAGE_SECOND_HALF_PRE,	{},	後半開始前,	Referee.Stage																						
+STAGE_SECOND_HALF,	{"stage_time_left_us": Optional[int]},	後半実行中,	(Referee.Stage,	stage_time_left)																						
+STAGE_EXTRA_TIME_BREAK,	{"stage_time_left_us": Optional[int]},	延長戦前休憩,	(Referee.Stage,	stage_time_left)																						
+STAGE_EXTRA_FIRST_HALF_PRE,	{},	延長前半開始前,	Referee.Stage																						
+STAGE_EXTRA_FIRST_HALF,	{"stage_time_left_us": Optional[int]},	延長前半実行中,	(Referee.Stage,	stage_time_left)																						
+STAGE_EXTRA_HALF_TIME,	{"stage_time_left_us": Optional[int]},	延長ハーフタイム,	(Referee.Stage,	stage_time_left)																						
+STAGE_EXTRA_SECOND_HALF_PRE,	{},	延長後半開始前,	Referee.Stage																						
+STAGE_EXTRA_SECOND_HALF,	{"stage_time_left_us": Optional[int]},	延長後半実行中,	(Referee.Stage,	stage_time_left)																						
+STAGE_PENALTY_BREAK,	{"stage_time_left_us": Optional[int]},	PK戦前休憩,	(Referee.Stage,	stage_time_left)																						
+STAGE_PENALTY_SHOOTOUT,	{},	PK戦実行中,	Referee.Stage																						
+STAGE_POST_GAME,	{},	試合終了後,	Referee.Stage																						
+COMMAND_HALT,	{},	全ロボット停止,	Referee.Command																						
+COMMAND_STOP,	{},	ロボット停止,	Referee.Command																						
+COMMAND_FORCE_START,	{},	中立での再開,	Referee.Command																						
+COMMAND_KICKOFF_PREP_YELLOW/_BLUE,	{"team": Team},	キックオフ準備,	Referee.Command																						
+COMMAND_PENALTY_PREP_YELLOW/_BLUE,	{"team": Team},	PK準備,	Referee.Command																						
+COMMAND_DIRECT_FREE_YELLOW/_BLUE,	{"team": Team, "current_action_time_remaining_us": Optional[int]},	直接フリーキック,	(Referee.Command,	current_action_...)																						
+COMMAND_TIMEOUT_YELLOW/_BLUE,	{"team": Team, "timeouts_left": int, "timeout_time_left_us": int},	タイムアウト中,	(Referee.Command,	TeamInfo)																						
+COMMAND_BALL_PLACEMENT_YELLOW/_BLUE,	{"team": Team, "placement_pos": Location, "current_action_time_remaining_us": Optional[int]},	ボールプレースメント,	(Referee.Command,	designated_position), current_action_...																						
+COMMAND_KICKOFF_START_YELLOW/_BLUE,	{"team": Team, "current_action_time_remaining_us": Optional[int]},	キックオフ実行許可,	(Referee.Command,	current_action_...)																						
+COMMAND_PENALTY_KICK_START_YELLOW/_BLUE,	{"team": Team, "current_action_time_remaining_us": Optional[int]},	PK実行許可,	(Referee.Command,	current_action_...)																						
+EVENT_BALL_LEFT_TOUCHLINE_TEAM,	{"team": Team, "last_touch_bot": Optional[int], "location": Location},	タッチラインアウト,	GameEvent.BallLeftField																						
+EVENT_BALL_LEFT_GOALLINE_TEAM,	{"team": Team, "last_touch_bot": Optional[int], "location": Location},	ゴールラインアウト,	GameEvent.BallLeftField																						
+EVENT_AIMLESS_KICK_TEAM,	{"team": Team, "by_bot": Optional[int], "location": Location, "kick_location": Location},	エイムレスキック,	(Div,	B),	GameEvent.AimlessKick																						
+EVENT_GOAL_CONFIRMED_TEAM,	{"team": Team, "kicking_team": Optional[Team], "kicking_bot": Optional[int], "score_yellow": int, "score_blue": int, "location": (Location,	...)},	ゴール確定,	(GameEvent.Goal,	TeamInfo)																						
+EVENT_GOAL_INVALID_TEAM,	{"team": Team, "kicking_team": Optional[Team], "kicking_bot": Optional[int], "message": Optional[str]},	ゴール無効,	GameEvent.Goal?																						
+EVENT_ATTACKER_TOO_CLOSE_TEAM,	{"team": Team, "by_bot": Optional[int], "location": Location, "distance": Optional[float]},	DFエリア近すぎ (停止中),	GameEvent.AttackerTooClose...																						
+EVENT_DEFENDER_IN_AREA_TEAM,	{"team": Team, "by_bot": Optional[int], "location": Location, "distance": Optional[float]},	DFエリア内タッチ,	(PKへ),	GameEvent.DefenderInDefenseArea																						
+EVENT_BOUNDARY_CROSSING_TEAM,	{"team": Team, "by_bot": Optional[int], "location": Location},	ボール蹴り出し (ファウル),	GameEvent.BoundaryCrossing																						
+EVENT_KEEPER_HELD_BALL_TEAM,	{"team": Team, "location": Location, "duration": Optional[float]},	GK保持超過,	GameEvent.KeeperHeldBall																						
+EVENT_EXCESSIVE_DRIBBLING_TEAM,	{"team": Team, "by_bot": Optional[int], "start": Location, "end": Location},	ドリブル超過,	GameEvent.BotDribbledBall...																						
+EVENT_BOT_PUSHING_TEAM,	{"team": Team, "violator_bot": Optional[int], "victim_bot": Optional[int], "location": Location, "pushed_distance": Optional[float]},	プッシング,	GameEvent.BotPushedBot																						
+EVENT_BOT_HOLDING_TEAM,	{"team": Team, "by_bot": Optional[int], "location": Location, "duration": Optional[float]},	意図的ボール保持,	GameEvent.BotHeldBall...																						
+EVENT_BOT_TIPPED_TEAM,	{"team": Team, "by_bot": Optional[int], "location": Location},	ロボット転倒,	GameEvent.BotTippedOver																						
+EVENT_BOT_DROPPED_PARTS_TEAM,	{"team": Team, "by_bot": Optional[int], "location": Location},	部品落下,	GameEvent.BotDroppedParts																						
+EVENT_ATTACKER_TOUCHED_BALL_IN_AREA_TEAM,	{"team": Team, "by_bot": Optional[int], "location": Location, "distance": Optional[float]},	相手DFエリア内タッチ,	GameEvent.AttackerTouched...																						
+EVENT_BALL_SPEED_TOO_FAST_TEAM,	{"team": Team, "by_bot": Optional[int], "location": Location, "initial_ball_speed": Optional[float], "chipped": Optional[bool]},	ボール速度超過,	GameEvent.BotKickedBall...																						
+EVENT_BOT_CRASH_UNIQUE_TEAM,	{"team": Team, "violator_bot": Optional[int], "victim_bot": Optional[int], "location": Location, "crash_speed": Optional[float], ...},	ロボット衝突,	(一方責任),	GameEvent.BotCrashUnique																						
+EVENT_BOT_CRASH_DRAWN,	{"bot_yellow": Optional[int], "bot_blue": Optional[int], "location": Location, "crash_speed": Optional[float], ...},	ロボット衝突,	(双方責任),	GameEvent.BotCrashDrawn																						
+EVENT_DEFENDER_TOO_CLOSE_TEAM,	{"team": Team, "by_bot": Optional[int], "location": Location, "distance": Optional[float]},	FK時DF近すぎ	GameEvent.DefenderTooClose...																						
+EVENT_BOT_SPEED_IN_STOP_TEAM,	{"team": Team, "by_bot": Optional[int], "location": Location, "speed": Optional[float]},	停止中速度超過,	GameEvent.BotTooFastInStop																						
+EVENT_PLACEMENT_INTERFERENCE_TEAM,	{"team": Team, "by_bot": Optional[int], "location": Location},	プレースメント妨害,	GameEvent.BotInterfered...																						
+EVENT_EXCESSIVE_SUBSTITUTION_TEAM,	{"team": Team},	過度な交代,	GameEvent.ExcessiveBot...																						
+EVENT_DOUBLE_TOUCH_TEAM,	{"team": Team, "by_bot": Optional[int], "location": Location},	ダブルタッチ,	GameEvent.AttackerDouble...																						
+EVENT_PLACEMENT_SUCCEEDED_TEAM,	{"team": Team, "time_taken": Optional[float], "precision": Optional[float], "distance": Optional[float]},	プレースメント成功,	GameEvent.PlacementSucceeded																						
+EVENT_PENALTY_FAILED_TEAM,	{"team": Team, "location": Location, "reason": Optional[str]},	PK失敗,	GameEvent.PenaltyKickFailed																						
+EVENT_NO_PROGRESS,	{"location": Location, "time": Optional[float]},	ゲーム停滞,	GameEvent.NoProgressInGame																						
+EVENT_PLACEMENT_FAILED_TEAM,	{"team": Team, "remaining_distance": Optional[float]},	プレースメント失敗,	GameEvent.PlacementFailed																						
+EVENT_MULTIPLE_CARDS_TEAM,	{"team": Team, "current_yellow_cards": int, "current_red_cards": int},	レッドカード発行,	TeamInfo																						
+EVENT_MULTIPLE_FOULS_TEAM,	{"team": Team, "current_yellow_cards": int, "current_red_cards": int},	イエローカード発行,	TeamInfo																						
+EVENT_BOT_SUBSTITUTION_START_TEAM,	{"team": Team, "substitutions_left": Optional[int]},	交代開始,	TeamInfo.bot_substitutions_left?																						
+EVENT_TOO_MANY_ROBOTS_TEAM,	{"team": Team, "num_robots_allowed": Optional[int], "num_robots_on_field": Optional[int]},	ロボット数超過,	GameEvent.TooManyRobots																						
+EVENT_CHALLENGE_FLAG_REQUESTED_TEAM,	{"team": Team},	チャレンジ要求受理,	GameEvent.ChallengeFlag																						
+EVENT_CHALLENGE_FLAG_HANDLED_TEAM,	{"team": Team, "accepted": bool},	チャレンジ処理完了,	GameEvent.ChallengeFlagHandled																						
+EVENT_EMERGENCY_STOP_TEAM,	{"team": Team},	緊急停止要求受理,	GameEvent.EmergencyStop																						
+EVENT_UNSPORTING_BEHAVIOR_MINOR_TEAM,	{"team": Team, "reason": str, "current_yellow_cards": int, "current_red_cards": int},	軽微な反スポーツ的行為,	(GameEvent.Unsporting...,	TeamInfo)																						
+EVENT_UNSPORTING_BEHAVIOR_MAJOR_TEAM,	{"team": Team, "reason": str, "current_yellow_cards": int, "current_red_cards": int},	重大な反スポーツ的行為,	(GameEvent.Unsporting...,	TeamInfo)																						
+STATE_TIMEOUT_TAKEN_YELLOW/_BLUE,	{"team": Team, "timeouts_left": int, "timeout_time_left_us": int},	タイムアウト取得,	Referee.TeamInfo																						

@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  orchestrator:
+    build: ./orchestrator
+    container_name: ssl_orchestrator
+    network_mode: host # マルチキャスト受信とオーディオアクセスのため、ホストネットワークを使うのが一番簡単かもしれない
+                      # ただし、コンテナの分離性は低下する
+    volumes:
+      # 設定ファイルをマウントしてコンテナ外から編集可能に
+      - ./orchestrator/config_orchestrator.yaml:/app/config_orchestrator.yaml:ro
+      - ./common/config_priority.yaml:/app/config_priority.yaml:ro
+      # ログ出力用 (任意)
+      # - ./logs/orchestrator:/app/logs
+    # 環境変数で設定ファイルのパスを指定する例
+    environment:
+      - CONFIG_ORCH_PATH=/app/config_orchestrator.yaml
+      - CONFIG_PRIORITY_PATH=/app/config_priority.yaml
+    # ポート公開は network_mode: host なら不要
+    # ports:
+    #   - "5555:5555" # ZMQ Publisher用 (ブリッジネットワークの場合)
+    command: python main_orchestrator.py # 仮の起動コマンド
+
+  audio_playback:
+    build: ./audio_playback
+    container_name: ssl_audio_playback
+    network_mode: host # 同上
+    volumes:
+      - ./audio_playback/config_audio.yaml:/app/config_audio.yaml:ro
+      - ./audio_playback/sounds:/app/sounds:ro # 音声ファイルを読み取り専用でマウント
+      # ホストのオーディオデバイスへのアクセス設定 (Linux PulseAudioの例)
+      - /run/user/1000/pulse:/run/user/1000/pulse # ホストのUIDに合わせる
+      - /dev/snd:/dev/snd # ALSAデバイスの場合 (権限注意)
+      # ログ出力用 (任意)
+      # - ./logs/audio_playback:/app/logs
+    environment:
+      - CONFIG_AUDIO_PATH=/app/config_audio.yaml
+      # - ZMQ_PUBLISHER_URI=tcp://orchestrator:5555 # ブリッジネットワークで名前解決する場合 (hostモードなら tcp://127.0.0.1:5555)
+      - ZMQ_PUBLISHER_URI=tcp://127.0.0.1:5555 # hostモードならこれでOK
+      - PULSE_SERVER=unix:/run/user/1000/pulse/native # PulseAudio用
+    # ports: # network_mode: host なら不要
+    depends_on:
+      - orchestrator # オーケストレーター起動後に開始（ただし接続はリトライ）
+
+    command: python main_audio_playback.py # 仮の起動コマンド
+
+  dummy_sender:
+    build: ./dummy_sender
+    container_name: ssl_dummy_sender
+    network_mode: host # マルチキャスト送信のためホストネットワーク推奨
+    # depends_on:
+    #   - orchestrator # リスナーが準備できるのを待つ場合
+
+# (任意) ネットワーク定義 (network_mode: host を使わない場合)
+# networks:
+#   ssl_commentary_net:
+#     driver: bridge

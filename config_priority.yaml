@@ -1,0 +1,13 @@
+# イベント優先度定義
+event_priorities:
+  DEFAULT: 1 # 未定義イベントのデフォルト
+
+  # プロトタイプでテストするイベントの例
+  COMMAND_STOP: 4
+  STAGE_HALF_TIME: 5
+  EVENT_GOAL_CONFIRMED_YELLOW: 10
+  EVENT_GOAL_CONFIRMED_BLUE: 10 # 比較のためBlueも定義しておく
+
+  # 他のイベントも必要に応じて追加...
+  # COMMAND_HALT: 9
+  # ...
