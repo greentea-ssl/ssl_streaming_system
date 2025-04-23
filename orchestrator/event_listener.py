@@ -85,10 +85,13 @@ class EventListener(threading.Thread):
                 data, addr = sock.recvfrom(65535) # バッファサイズ
                 # print(f"Received {len(data)} bytes from {addr}") # デバッグ用
                 ref_message.ParseFromString(data)
-                print(f"Parsed Referee msg: stage={ref_message.stage}, command={ref_message.command}") # デバッグ用
-
+                # print(f"Parsed Referee msg: stage={ref_message.stage}, command={ref_message.command}") # デバッグ用
+                
+                msg_copy = referee_pb2.Referee()
+                msg_copy.CopyFrom(ref_message)
+                
                 # デコード成功したらキューに入れる (コピーを渡す方が安全かもしれないが、まずはそのまま)
-                self.output_queue.put(ref_message)
+                self.output_queue.put(msg_copy)
 
             except socket.timeout:
                 # タイムアウトは正常、stop()をチェックするため
