@@ -91,9 +91,15 @@ class Orchestrator(threading.Thread):
                 return GameEvent(event_type=event_type_str, priority=priority, data=data)
             except Exception as e:
                 # ... (エラーハンドリング) ...
+                print(f"Orchestrator: Error processing event {event_enum}: {e}")
+                print("Traceback:")
+                traceback.print_exc()
+                print("-" * 20)
+                
                 return None
         else:
             # ... (ハンドラー未定義の場合) ...
+            print(f"Orchestrator: No handler defined for event type {event_enum}")
             return None
     
     def _detect_status_changes(self, prev_ref_msg: Optional[referee_pb2.Referee], current_ref_msg: referee_pb2.Referee) -> List[GameEvent]:
