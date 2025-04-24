@@ -55,6 +55,15 @@ class Orchestrator(threading.Thread):
             game_event_pb2.GameEvent.Type.GOAL: protobuf_event_handlers.handle_goal,
             game_event_pb2.GameEvent.Type.PLACEMENT_SUCCEEDED: protobuf_event_handlers.handle_placement_succeeded,
             game_event_pb2.GameEvent.Type.PLACEMENT_FAILED: protobuf_event_handlers.handle_placement_failed,
+            game_event_pb2.GameEvent.Type.NO_PROGRESS_IN_GAME: protobuf_event_handlers.handle_no_progress_in_game,
+            game_event_pb2.GameEvent.Type.AIMLESS_KICK: protobuf_event_handlers.handle_aimless_kick,
+            game_event_pb2.GameEvent.Type.KEEPER_HELD_BALL: protobuf_event_handlers.handle_keeper_held_ball,
+            game_event_pb2.GameEvent.Type.BOT_DRIBBLED_BALL_TOO_FAR: protobuf_event_handlers.handle_bot_dribbled_ball_too_far,
+            game_event_pb2.GameEvent.Type.BOT_PUSHED_BOT: protobuf_event_handlers.handle_bot_pushed_bot,
+            game_event_pb2.GameEvent.Type.BOT_KICKED_BALL_TOO_FAST: protobuf_event_handlers.handle_bot_kicked_ball_too_fast,
+            game_event_pb2.GameEvent.Type.BOT_CRASH_UNIQUE: protobuf_event_handlers.handle_bot_crash_unique,
+            game_event_pb2.GameEvent.Type.BOT_CRASH_DRAWN: protobuf_event_handlers.handle_bot_crash_drawn,
+            game_event_pb2.GameEvent.Type.DEFENDER_TOO_CLOSE_TO_KICK_POINT: protobuf_event_handlers.handle_defender_too_close_to_kick_point,
             
             # --- TODO: 他のイベントEnum値と対応するハンドラー関数を追加 ---
             # game_event_pb2.GameEvent.Type.AIMLESS_KICK: protobuf_event_handlers.handle_aimless_kick,
