@@ -84,6 +84,58 @@ def handle_goal(proto_event: game_event_pb2.GameEvent, current_ref: referee_pb2.
     print(f"Handler generated: {event_type} with data {data}") # デバッグ用ログ
     return event_type, data
 
+
+def handle_placement_succeeded(proto_event: game_event_pb2.GameEvent, current_ref: referee_pb2.Referee) -> Tuple[str, Dict[str, Any]]:
+    """PLACEMENT_SUCCEEDED イベントを処理"""
+    # ssl_gc_game_event.proto の PlacementSucceeded メッセージ定義を参照
+    event_type_str = "UNKNOWN_PROTO_EVENT"
+    data: Dict[str, Any] = {}
+    # GameEvent.event 内の oneof フィールド名は 'placement_succeeded' と仮定
+    if proto_event.HasField("placement_succeeded"):
+        specific_event = proto_event.placement_succeeded
+        team_str = _map_team_enum_to_str(specific_event.by_team) # required Team by_team = 1;
+        event_type_str = f"EVENT_PLACEMENT_SUCCEEDED_{team_str}"
+        data["team"] = team_str
+        # optional float time_taken = 2;
+        if specific_event.HasField("time_taken"):
+            data["time_taken"] = specific_event.time_taken
+        # optional float precision = 3;
+        if specific_event.HasField("precision"):
+            data["precision"] = specific_event.precision
+        # optional float distance = 4;
+        if specific_event.HasField("distance"):
+            data["distance"] = specific_event.distance
+        print(f"Handler generated: {event_type_str} with data {data}")
+    else:
+        # このパスは通常通らないはず (typeとoneofフィールドは対応するため)
+        print(f"Warning: PLACEMENT_SUCCEEDED event missing 'placement_succeeded' data: {proto_event}")
+        return "EVENT_ERROR", {"reason": "Missing placement_succeeded data"}
+
+    return event_type_str, data
+
+def handle_placement_failed(proto_event: game_event_pb2.GameEvent, current_ref: referee_pb2.Referee) -> Tuple[str, Dict[str, Any]]:
+    """PLACEMENT_FAILED イベントを処理"""
+    # ssl_gc_game_event.proto の PlacementFailed メッセージ定義を参照
+    event_type_str = "UNKNOWN_PROTO_EVENT"
+    data: Dict[str, Any] = {}
+    # GameEvent.event 内の oneof フィールド名は 'placement_failed' と仮定
+    if proto_event.HasField("placement_failed"):
+        specific_event = proto_event.placement_failed
+        team_str = _map_team_enum_to_str(specific_event.by_team) # required Team by_team = 1;
+        event_type_str = f"EVENT_PLACEMENT_FAILED_{team_str}"
+        data["team"] = team_str
+        # optional float remaining_dist = 2;
+        if specific_event.HasField("remaining_dist"):
+            data["remaining_distance"] = specific_event.remaining_dist
+        print(f"Handler generated: {event_type_str} with data {data}")
+    else:
+        print(f"Warning: PLACEMENT_FAILED event missing 'placement_failed' data: {proto_event}")
+        return "EVENT_ERROR", {"reason": "Missing placement_failed data"}
+
+    return event_type_str, data
+
+
+
 # --- TODO: 他のイベントタイプに対応する handle_... 関数をここに追加 ---
 # 例:
 # def handle_aimless_kick(proto_event: game_event_pb2.GameEvent, current_ref: referee_pb2.Referee) -> Tuple[str, Dict[str, Any]]:

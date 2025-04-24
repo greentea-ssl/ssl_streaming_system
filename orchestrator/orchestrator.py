@@ -53,6 +53,9 @@ class Orchestrator(threading.Thread):
             game_event_pb2.GameEvent.Type.BALL_LEFT_FIELD_TOUCH_LINE: protobuf_event_handlers.handle_ball_left_touchline,
             game_event_pb2.GameEvent.Type.BALL_LEFT_FIELD_GOAL_LINE: protobuf_event_handlers.handle_ball_left_goalline,
             game_event_pb2.GameEvent.Type.GOAL: protobuf_event_handlers.handle_goal,
+            game_event_pb2.GameEvent.Type.PLACEMENT_SUCCEEDED: protobuf_event_handlers.handle_placement_succeeded,
+            game_event_pb2.GameEvent.Type.PLACEMENT_FAILED: protobuf_event_handlers.handle_placement_failed,
+            
             # --- TODO: 他のイベントEnum値と対応するハンドラー関数を追加 ---
             # game_event_pb2.GameEvent.Type.AIMLESS_KICK: protobuf_event_handlers.handle_aimless_kick,
             # game_event_pb2.GameEvent.Type.UNSPORTING_BEHAVIOR_MINOR: protobuf_event_handlers.handle_unsporting_behavior_minor, # タイプ 32 用
@@ -95,7 +98,7 @@ class Orchestrator(threading.Thread):
                 print("Traceback:")
                 traceback.print_exc()
                 print("-" * 20)
-                
+
                 return None
         else:
             # ... (ハンドラー未定義の場合) ...
