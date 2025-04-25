@@ -5,7 +5,8 @@ import time
 import zmq
 import json
 import traceback
-from typing import List, Optional, Set, Dict, Any
+from typing import List, Optional, Set, Dict, Any, Callable
+from enum import Enum, auto
 
 from . import protobuf_event_handlers
 
@@ -29,6 +30,20 @@ except ImportError:
     exit(1)
 # --- ここまで ---
 
+class InternalGameState(Enum):
+    UNKNOWN = auto()
+    HALTED = auto()
+    STOPPED = auto()
+    RUNNING = auto()
+    PREPARE_KICKOFF_YELLOW = auto()
+    PREPARE_KICKOFF_BLUE = auto()
+    PREPARE_PENALTY_YELLOW = auto()
+    PREPARE_PENALTY_BLUE = auto()
+    DIRECT_FREE_YELLOW = auto()
+    DIRECT_FREE_BLUE = auto()
+    # INDIRECT_FREE = auto() # 必要なら
+    TIMEOUT = auto()
+    BALL_PLACEMENT = auto()
 
 class Orchestrator(threading.Thread):
     def __init__(self,
@@ -41,6 +56,9 @@ class Orchestrator(threading.Thread):
         self.publisher = self.context.socket(zmq.PUB)
 
         # --- 状態保持用属性 ---
+        self.internal_game_state: InternalGameState = InternalGameState.UNKNOWN # 内部状態属性
+        self.previous_ref_msg: Optional[referee_pb2.Referee] = None
+
         self.previous_ref_msg: Optional[referee_pb2.Referee] = None
         self.processed_game_event_ids: Set[int] = set() # 処理済みProtobuf GameEventタイムスタンプ
 
@@ -86,6 +104,51 @@ class Orchestrator(threading.Thread):
     # --- 優先度取得メソッド (将来実装) ---
     # def _get_priority(self, event_type: str) -> int:
     #     return self.event_priorities.get(event_type, 5) # デフォルト優先度 5
+    def _get_priority(self, event_type: str) -> int:
+        """ 優先度を取得する (将来実装) """
+        return 5 # デフォルト優先度 5
+    
+    def _update_internal_game_state(self, current_ref_msg: referee_pb2.Referee):
+        cmd = current_ref_msg.command
+        new_state = self.internal_game_state # デフォルトは維持
+
+        if cmd == referee_pb2.Referee.Command.HALT:
+            new_state = InternalGameState.HALTED
+        elif cmd == referee_pb2.Referee.Command.STOP:
+            new_state = InternalGameState.STOPPED
+        elif cmd == referee_pb2.Referee.Command.PREPARE_KICKOFF_YELLOW:
+            new_state = InternalGameState.PREPARE_KICKOFF_YELLOW
+        elif cmd == referee_pb2.Referee.Command.PREPARE_KICKOFF_BLUE:
+            new_state = InternalGameState.PREPARE_KICKOFF_BLUE
+        elif cmd == referee_pb2.Referee.Command.PREPARE_PENALTY_YELLOW:
+            new_state = InternalGameState.PREPARE_PENALTY_YELLOW
+        elif cmd == referee_pb2.Referee.Command.PREPARE_PENALTY_BLUE:
+            new_state = InternalGameState.PREPARE_PENALTY_BLUE
+        elif cmd == referee_pb2.Referee.Command.DIRECT_FREE_YELLOW:
+            new_state = InternalGameState.DIRECT_FREE_YELLOW
+        elif cmd == referee_pb2.Referee.Command.DIRECT_FREE_BLUE:
+            new_state = InternalGameState.DIRECT_FREE_BLUE
+        elif cmd == referee_pb2.Referee.Command.TIMEOUT_YELLOW:
+            new_state = InternalGameState.TIMEOUT_YELLOW
+        elif cmd == referee_pb2.Referee.Command.TIMEOUT_BLUE:
+            new_state = InternalGameState.TIMEOUT_BLUE
+        elif cmd == referee_pb2.Referee.Command.BALL_PLACEMENT_YELLOW:
+            new_state = InternalGameState.BALL_PLACEMENT_YELLOW
+        elif cmd == referee_pb2.Referee.Command.BALL_PLACEMENT_BLUE:
+            new_state = InternalGameState.BALL_PLACEMENT_BLUE
+        elif cmd == referee_pb2.Referee.Command.FORCE_START:
+            new_state = InternalGameState.RUNNING
+        elif cmd == referee_pb2.Referee.Command.NORMAL_START:
+            # NORMAL_START 自体は RUNNING 状態への移行を示すことが多い
+            # (ただし、具体的なイベント生成は _detect_status_changes で行う)
+            new_state = InternalGameState.RUNNING
+
+        if new_state != self.internal_game_state:
+            print(f"Internal Game State changed to: {new_state.name}")
+            self.internal_game_state = new_state
+        # else:
+            # print(f"Internal Game State remains: {self.internal_game_state.name}")
+            # pass
 
     def _map_protobuf_event_to_game_event(self, proto_event: game_event_pb2.GameEvent, current_ref: referee_pb2.Referee) -> Optional[GameEvent]:
         """ Protobuf GameEvent をシステムの GameEvent にマッピングする (辞書と外部ハンドラーを使用) """
@@ -147,42 +210,74 @@ class Orchestrator(threading.Thread):
         # --- Command Change Detection ---
         if current_ref_msg.command != prev_ref_msg.command:
             command_enum_val = current_ref_msg.command
+            command_name = referee_pb2.Referee.Command.Name(command_enum_val)
+            current_internal_state = self.internal_game_state
+
             try:
-                command_name = referee_pb2.Referee.Command.Name(command_enum_val)
-                # 特殊なコマンド (KICKOFF_PREPなど) はチーム名を付与する必要があるかもしれない
-                event_type_str = f"COMMAND_{command_name}" # 例: "COMMAND_STOP"
+                if command_enum_val == referee_pb2.Referee.Command.NORMAL_START:
+                    prev_command_enum_val = prev_ref_msg.command
+                    event_type_str = f"COMMAND_NORMAL_START" # デフォルト
+                    data = {}
+                    priority = self._get_priority(event_type_str) # デフォルト優先度
+                    
+                    if current_internal_state == InternalGameState.PREPARE_KICKOFF_YELLOW:
+                        event_type_str = "COMMAND_KICKOFF_START_YELLOW"
+                        data["team"] = "YELLOW"
+                        priority = self._get_priority(event_type_str) # 専用優先度
+                    elif current_internal_state == InternalGameState.PREPARE_KICKOFF_BLUE:
+                        event_type_str = "COMMAND_KICKOFF_START_BLUE"
+                        data["team"] = "BLUE"
+                        priority = self._get_priority(event_type_str)
+                    elif current_internal_state == InternalGameState.PREPARE_PENALTY_YELLOW:
+                        event_type_str = "COMMAND_PENALTY_KICK_START_YELLOW"
+                        data["team"] = "YELLOW"
+                        priority = self._get_priority(event_type_str)
+                    elif current_internal_state == InternalGameState.PREPARE_PENALTY_BLUE:
+                        event_type_str = "COMMAND_PENALTY_KICK_START_BLUE"
+                        data["team"] = "BLUE"
+                        priority = self._get_priority(event_type_str)
+                    # else:
+                        # 上記以外からの NORMAL_START はそのまま COMMAND_NORMAL_START とする
+                        # (またはログ出力など)
 
-                data = {}
-                # チーム情報が必要なコマンドか判定 (例: KICKOFF_PREP_YELLOW)
-                # (より洗練された方法: Command名で判定、または専用のデータ構造を使う)
-                if "YELLOW" in command_name:
-                     data["team"] = "YELLOW"
-                     # event_type_str も調整 (例: "COMMAND_KICKOFF_PREP_YELLOW")
-                elif "BLUE" in command_name:
-                     data["team"] = "BLUE"
-                     # event_type_str も調整
+                    print(f"Orchestrator: Detected specific start command: {event_type_str}")
+                    events.append(GameEvent(event_type=event_type_str, priority=priority, data=data))
 
-                # current_action_time_remaining_us が必要なコマンドか判定
-                if current_ref_msg.HasField("current_action_time_remaining"):
-                     data["current_action_time_remaining_us"] = current_ref_msg.current_action_time_remaining # 仮 (単位要確認)
+                else:
+                    # 特殊なコマンド (KICKOFF_PREPなど) はチーム名を付与する必要があるかもしれない
+                    event_type_str = f"COMMAND_{command_name}" # 例: "COMMAND_STOP"
 
-                # ボールプレースメント位置が必要なコマンドか判定
-                if "BALL_PLACEMENT" in command_name and current_ref_msg.HasField("designated_position"):
-                     data["placement_pos"] = {
-                         "x": current_ref_msg.designated_position.x,
-                         "y": current_ref_msg.designated_position.y
-                     }
+                    data = {}
+                    # チーム情報が必要なコマンドか判定 (例: KICKOFF_PREP_YELLOW)
+                    # (より洗練された方法: Command名で判定、または専用のデータ構造を使う)
+                    if "YELLOW" in command_name:
+                        data["team"] = "YELLOW"
+                        # event_type_str も調整 (例: "COMMAND_KICKOFF_PREP_YELLOW")
+                    elif "BLUE" in command_name:
+                        data["team"] = "BLUE"
+                        # event_type_str も調整
 
-                # タイムアウト関連情報が必要なコマンドか判定
-                if "TIMEOUT" in command_name:
-                     team_info = current_ref_msg.yellow if "YELLOW" in command_name else current_ref_msg.blue
-                     data["timeouts_left"] = team_info.timeouts
-                     data["timeout_time_left_us"] = team_info.timeout_time # 仮 (単位要確認)
+                    # current_action_time_remaining_us が必要なコマンドか判定
+                    if current_ref_msg.HasField("current_action_time_remaining"):
+                        data["current_action_time_remaining_us"] = current_ref_msg.current_action_time_remaining # 仮 (単位要確認)
 
-                print(f"Orchestrator: Detected Command change to {event_type_str} with data {data}")
-                # priority = self._get_priority(event_type_str) # 将来
-                priority = 5 # 仮
-                events.append(GameEvent(event_type=event_type_str, priority=priority, data=data))
+                    # ボールプレースメント位置が必要なコマンドか判定
+                    if "BALL_PLACEMENT" in command_name and current_ref_msg.HasField("designated_position"):
+                        data["placement_pos"] = {
+                            "x": current_ref_msg.designated_position.x,
+                            "y": current_ref_msg.designated_position.y
+                        }
+
+                    # タイムアウト関連情報が必要なコマンドか判定
+                    if "TIMEOUT" in command_name:
+                        team_info = current_ref_msg.yellow if "YELLOW" in command_name else current_ref_msg.blue
+                        data["timeouts_left"] = team_info.timeouts
+                        data["timeout_time_left_us"] = team_info.timeout_time # 仮 (単位要確認)
+
+                    print(f"Orchestrator: Detected Command change to {event_type_str} with data {data}")
+                    priority = self._get_priority(event_type_str) # 将来
+                    
+                    events.append(GameEvent(event_type=event_type_str, priority=priority, data=data))
             except ValueError:
                  print(f"Orchestrator: Unknown Command enum value: {command_enum_val}")
 
@@ -190,7 +285,6 @@ class Orchestrator(threading.Thread):
         # --- TODO: Other Status Changes (e.g., Timeout taken based on TeamInfo diff) ---
 
         return events
-
 
     def _process_game_events_list(self, current_ref_msg: referee_pb2.Referee) -> List[GameEvent]:
         """Referee.game_events リストを処理し、新しいイベントに対応するGameEventリストを返す"""
@@ -257,6 +351,7 @@ class Orchestrator(threading.Thread):
                     self._publish_event(game_event)
 
                 # --- 状態更新 ---
+                self._update_internal_game_state(ref_msg)
                 self.previous_ref_msg = ref_msg # 次の比較のために現在のメッセージを保持
                 self.input_queue.task_done()
 
