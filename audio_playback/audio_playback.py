@@ -3,8 +3,7 @@ import zmq
 import json
 import time
 import threading
-from typing import Optional
-
+from typing import Optional, Dict, Any
 # --- データモデルをインポート ---
 try:
     from common.data_models import GameEvent # 作成したデータモデル
@@ -15,7 +14,17 @@ except ImportError:
 
 
 class AudioPlaybackModule:
-    def __init__(self, zmq_publisher_uri: str = "tcp://localhost:5555"):
+    def __init__(self, 
+                 audio_config: Dict[str, Any]):
+        
+        self.audio_config = audio_config
+        zmq_publisher_uri = audio_config.get("zmq_publisher_uri", "tcp://localhost:5555")
+
+        if "event_actions" not in self.audio_config:
+             self.audio_config["event_actions"] = {}
+        if "DEFAULT_ACTION" not in self.audio_config:
+             self.audio_config["DEFAULT_ACTION"] = {"action": "ignore"}
+
         self.zmq_publisher_uri = zmq_publisher_uri
         self.context = zmq.Context()
         self.subscriber: Optional[zmq.Socket] = None
@@ -92,16 +101,3 @@ class AudioPlaybackModule:
             self.subscriber.close()
         self.context.term()
         print("Playback Module ZeroMQ context terminated.")
-
-
-if __name__ == '__main__':
-    # オーケストレーターが publish しているアドレスを指定
-    # 同じマシンで動かすなら localhost でOK
-    playback = AudioPlaybackModule(zmq_publisher_uri="tcp://localhost:5555")
-    try:
-        playback.run()
-    except KeyboardInterrupt:
-        print("\nKeyboard interrupt received. Stopping playback module...")
-    finally:
-        playback.stop() # runループを止めるシグナル
-        print("Playback Module finished.")

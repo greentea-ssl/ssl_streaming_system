@@ -48,10 +48,10 @@ class InternalGameState(Enum):
 class Orchestrator(threading.Thread):
     def __init__(self,
                  input_queue: queue.Queue,
-                 zmq_publisher_uri: str = "tcp://*:5555"):
+                 orchestrator_config: Dict[str, Any],
+                 priority_config: Dict[str, Any]):
         super().__init__(daemon=True)
         self.input_queue = input_queue
-        self.zmq_publisher_uri = zmq_publisher_uri
         self.context = zmq.Context()
         self.publisher = self.context.socket(zmq.PUB)
 
@@ -62,9 +62,15 @@ class Orchestrator(threading.Thread):
         self.previous_ref_msg: Optional[referee_pb2.Referee] = None
         self.processed_game_event_ids: Set[int] = set() # 処理済みProtobuf GameEventタイムスタンプ
 
-        # --- 設定ファイル関連 (将来実装) ---
-        # self.event_priorities: Dict[str, int] = {}
-        # self.state_update_interval_sec: float = 1.0
+        self.orchestrator_config = orchestrator_config
+        self.priority_config = priority_config
+
+        # --- 設定値を使用 ---
+        self.zmq_publisher_uri = self.orchestrator_config.get("zmq_publisher_uri", "tcp://*:5555") # .getでデフォルト値指定も可能
+        self.state_update_interval_sec = self.orchestrator_config.get("state_update_interval_sec", 1.0)
+        self.event_priorities = self.priority_config.get("event_priorities", {})
+        self.DEFAULT_PRIORITY = self.priority_config.get("DEFAULT_PRIORITY", 5) # デフォルト優先度
+
 
         # --- イベントタイプとハンドラーのマッピング辞書 (インポートした関数を参照) ---
         self.protobuf_event_handlers: Dict[int, Callable] = {
@@ -105,8 +111,30 @@ class Orchestrator(threading.Thread):
     # def _get_priority(self, event_type: str) -> int:
     #     return self.event_priorities.get(event_type, 5) # デフォルト優先度 5
     def _get_priority(self, event_type: str) -> int:
-        """ 優先度を取得する (将来実装) """
-        return 5 # デフォルト優先度 5
+        """
+        イベントタイプ文字列に対応する優先度を設定辞書から取得する。
+        設定ファイルに定義されていない場合はデフォルト値を返す。
+
+        Args:
+            event_type: 優先度を知りたいイベントタイプの文字列。
+
+        Returns:
+            優先度を表す整数値。
+        """
+        # self.event_priorities 辞書から event_type をキーとして値を取得
+        # .get() メソッドを使うと、キーが存在しない場合にデフォルト値を指定できる
+        priority = self.event_priorities.get(event_type, self.DEFAULT_PRIORITY)
+
+        # 念のため、取得した値が整数かチェック (設定ファイルが不正な場合)
+        if not isinstance(priority, int):
+            print(f"Warning: Invalid priority value '{priority}' found for event type '{event_type}'. Using default priority {self.DEFAULT_PRIORITY}.")
+            priority = self.DEFAULT_PRIORITY
+
+        # 設計書に合わせて 1-10 の範囲に収める (任意)
+        # priority = max(1, min(10, priority))
+
+        # print(f"Priority for {event_type}: {priority}") # デバッグ用
+        return priority
     
     def _update_internal_game_state(self, current_ref_msg: referee_pb2.Referee):
         cmd = current_ref_msg.command
