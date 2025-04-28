@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>サッカーフィールド配置可視化</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        // React フックをインポート
+        const { useState, useEffect } = React;
+        
+        // フィールドの寸法（メートル単位、RoboCup SSLフィールドの標準寸法を使用）
+        const FIELD_LENGTH = 12; // メートル
+        const FIELD_WIDTH = 9;   // メートル
+
+        const FieldVisualization = () => {
+          const [placementLocation, setPlacementLocation] = useState(null);
+          const [eventHistory, setEventHistory] = useState([]);
+          const [connected, setConnected] = useState(false);
+          const [error, setError] = useState(null);
+
+          // テスト用のイベントシミュレーション関数
+          const simulateEvent = () => {
+            const randomX = (Math.random() * FIELD_LENGTH) - (FIELD_LENGTH/2);
+            const randomY = (Math.random() * FIELD_WIDTH) - (FIELD_WIDTH/2);
+            
+            const newEvent = {
+              timestamp: Date.now() / 1000,
+              event_type: "EVENT_PLACEMENT_SUCCEEDED_YELLOW",
+              data: {
+                team: "YELLOW",
+                location: { x: randomX, y: randomY }
+              }
+            };
+            
+            handleNewEvent(newEvent);
+          };
+
+          // 新しいイベントを処理する関数
+          const handleNewEvent = (event) => {
+            // イベントが配置イベントかどうかを確認
+            if (event.event_type && (
+                event.event_type.includes("PLACEMENT_SUCCEEDED") || 
+                event.event_type.includes("BALL_PLACEMENT") ||
+                event.event_type.includes("COMMAND_BALL_PLACEMENT")
+              )) {
+              
+              // 位置データを抽出
+              const location = event.data && event.data.location ? 
+                              event.data.location : 
+                              (event.data && event.data.placement_pos ? 
+                                event.data.placement_pos : null);
+              
+              if (location) {
+                setPlacementLocation(location);
+                
+                // 履歴に追加
+                setEventHistory(prevHistory => {
+                  const newHistory = [...prevHistory, {
+                    timestamp: event.timestamp,
+                    event_type: event.event_type,
+                    location: location,
+                    team: event.data.team || "UNKNOWN"
+                  }];
+                  
+                  // 最新の10件のイベントのみを保持
+                  return newHistory.slice(-10);
+                });
+              }
+            }
+          };
+
+          // WebSocketブリッジに接続する
+          useEffect(() => {
+            let socket = null;
+            
+            const connectToEventStream = async () => {
+              try {
+                // WebSocketサーバーに接続
+                // ホスト名は環境に応じて変更可能（環境変数から取得するなど）
+                const host = window.location.hostname;
+                const wsUrl = `ws://${host}:8765`;
+                socket = new WebSocket(wsUrl);
+                
+                // 接続開始
+                socket.addEventListener('open', (event) => {
+                  console.log("イベントストリームに接続しました（WebSocket経由）");
+                  setConnected(true);
+                  setError(null);
+                });
+                
+                // メッセージを受信
+                socket.addEventListener('message', (event) => {
+                  try {
+                    const message = JSON.parse(event.data);
+                    
+                    // 'event'トピックのメッセージのみを処理
+                    if (message.topic === 'event' && message.data) {
+                      handleNewEvent(message.data);
+                    }
+                  } catch (err) {
+                    console.error("WebSocketメッセージの処理エラー:", err);
+                  }
+                });
+                
+                // 接続エラー
+                socket.addEventListener('error', (event) => {
+                  console.error("WebSocketエラー:", event);
+                  setConnected(false);
+                  setError("WebSocket接続エラー");
+                });
+                
+                // 接続終了
+                socket.addEventListener('close', (event) => {
+                  console.log("WebSocket接続が閉じられました");
+                  setConnected(false);
+                  
+                  // これがクリーンな終了でなかった場合、遅延後に再接続を試みる
+                  if (!event.wasClean) {
+                    setError(`予期せず接続が閉じられました: ${event.reason || "不明な理由"}`);
+                    setTimeout(connectToEventStream, 3000);
+                  }
+                });
+              } catch (err) {
+                setConnected(false);
+                setError(`接続エラー: ${err.message}`);
+                // 遅延後に再接続を試みる
+                setTimeout(connectToEventStream, 3000);
+              }
+            };
+
+            connectToEventStream();
+
+            // クリーンアップ関数
+            return () => {
+              if (socket) {
+                console.log("WebSocket接続を閉じています");
+                socket.close();
+              }
+            };
+          }, []);
+
+          // フィールド座標（メートル）をピクセル座標に変換
+          const fieldToPixel = (x, y, fieldWidth, fieldHeight) => {
+            // 中心原点から左上原点に変換し、
+            // コンテナに合わせてスケーリング
+            const pixelX = ((x + FIELD_LENGTH/2) / FIELD_LENGTH) * fieldWidth;
+            const pixelY = ((y + FIELD_WIDTH/2) / FIELD_WIDTH) * fieldHeight;
+            
+            return { x: pixelX, y: pixelY };
+          };
+
+          return (
+            <div className="flex flex-col items-center p-4 bg-gray-100 min-h-screen">
+              <h1 className="text-2xl font-bold mb-2">サッカーフィールド配置可視化</h1>
+              
+              <div className="flex w-full max-w-6xl">
+                {/* フィールド可視化 */}
+                <div className="w-2/3 mr-4">
+                  <div className="bg-white p-4 rounded shadow">
+                    <div className="relative" style={{ width: '100%', paddingBottom: '75%' }}>
+                      {/* サッカーフィールド */}
+                      <div className="absolute inset-0 border-2 border-white bg-green-600">
+                        {/* センターライン */}
+                        <div className="absolute top-0 bottom-0 left-1/2 w-0.5 bg-white"></div>
+                        
+                        {/* センターサークル */}
+                        <div className="absolute top-1/2 left-1/2 w-16 h-16 rounded-full border-2 border-white -translate-x-1/2 -translate-y-1/2"></div>
+                        
+                        {/* ペナルティエリア */}
+                        <div className="absolute top-1/4 left-0 w-1/6 h-1/2 border-r-2 border-white"></div>
+                        <div className="absolute top-1/4 right-0 w-1/6 h-1/2 border-l-2 border-white"></div>
+                        
+                        {/* ゴールエリア */}
+                        <div className="absolute top-3/8 left-0 w-1/12 h-1/4 border-r-2 border-white"></div>
+                        <div className="absolute top-3/8 right-0 w-1/12 h-1/4 border-l-2 border-white"></div>
+                        
+                        {/* 配置位置をオレンジ色の円で表示 */}
+                        {placementLocation && (
+                          <div 
+                            className="absolute w-4 h-4 bg-orange-500 rounded-full transform -translate-x-1/2 -translate-y-1/2"
+                            style={{
+                              left: `${((placementLocation.x + FIELD_LENGTH/2) / FIELD_LENGTH) * 100}%`,
+                              top: `${((placementLocation.y + FIELD_WIDTH/2) / FIELD_WIDTH) * 100}%`
+                            }}
+                          ></div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 flex justify-between items-center">
+                      <div>
+                        {connected ? (
+                          <span className="text-green-600 font-semibold">✓ 接続済み</span>
+                        ) : (
+                          <span className="text-red-600 font-semibold">✗ 未接続</span>
+                        )}
+                        {error && <p className="text-red-600 text-sm">{error}</p>}
+                      </div>
+                      
+                      {/* テストコントロール */}
+                      <div>
+                        <button 
+                          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded"
+                          onClick={simulateEvent}
+                        >
+                          配置イベントをシミュレート
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* 座標表示 */}
+                  <div className="bg-white mt-4 p-4 rounded shadow">
+                    <h3 className="font-semibold mb-2">現在の配置位置:</h3>
+                    {placementLocation ? (
+                      <p>
+                        X: {placementLocation.x.toFixed(2)} m, 
+                        Y: {placementLocation.y.toFixed(2)} m
+                      </p>
+                    ) : (
+                      <p>配置位置が受信されていません</p>
+                    )}
+                  </div>
+                </div>
+                
+                {/* イベント履歴 */}
+                <div className="w-1/3">
+                  <div className="bg-white p-4 rounded shadow h-full">
+                    <h3 className="font-semibold mb-2">イベント履歴</h3>
+                    {eventHistory.length === 0 ? (
+                      <p className="text-gray-500">イベントが受信されていません</p>
+                    ) : (
+                      <ul className="divide-y">
+                        {eventHistory.slice().reverse().map((event, idx) => (
+                          <li key={idx} className="py-2">
+                            <div className="flex justify-between">
+                              <span className={`font-medium ${event.team === "YELLOW" ? "text-yellow-600" : "text-blue-600"}`}>
+                                {event.event_type.replace("EVENT_", "").replace("_YELLOW", "").replace("_BLUE", "")}
+                              </span>
+                              <span className="text-sm text-gray-500">
+                                {new Date(event.timestamp * 1000).toLocaleTimeString()}
+                              </span>
+                            </div>
+                            <div className="text-sm">
+                              X: {event.location.x.toFixed(2)} m, 
+                              Y: {event.location.y.toFixed(2)} m
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        // アプリケーションをレンダリング
+        const rootElement = document.getElementById('root');
+        const root = ReactDOM.createRoot(rootElement);
+        root.render(<FieldVisualization />);
+    </script>
+</body>
+</html>

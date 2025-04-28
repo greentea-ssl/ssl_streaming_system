@@ -38,6 +38,6 @@ COPY common/ ./common/
 COPY proto/ ./proto/
 
 # コンテナ起動時に実行されるコマンド
-CMD ["python", "-m", "orchestrator", \
+CMD ["python", "-u", "-m","orchestrator", \
      "--orchestrator-config", "/app/config/config_orchestrator.yaml", \
      "--priority-config", "/app/config/config_priority.yaml"]

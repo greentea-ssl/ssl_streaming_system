@@ -1,0 +1,40 @@
+FROM python:3.12-slim
+
+ARG POETRY_VERSION=2.1.2
+
+WORKDIR /app
+ENV POETRY_HOME="/opt/poetry" \
+    POETRY_VIRTUALENVS_CREATE=false \
+    PATH="/opt/poetry/bin:$PATH"
+
+# 必要なパッケージをインストール
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    gcc \
+    python3-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -sSL https://install.python-poetry.org | python3 - --version ${POETRY_VERSION}
+
+# 依存ライブラリをインストール
+COPY pyproject.toml .
+RUN poetry install --no-root --no-interaction --no-ansi
+
+# アプリケーションコードをコピー
+COPY placement_visualizer/index.html .
+
+# ZeroMQ WebSocketブリッジ（サブスクライバー）
+COPY placement_visualizer/zmq_websocket_bridge.py .
+
+# HTTP サーバー用スクリプト
+COPY placement_visualizer/serve.py .
+
+# 起動スクリプト
+COPY placement_visualizer/start_viz.sh .
+RUN chmod +x start_viz.sh
+
+# ポート公開
+EXPOSE 8080 8765
+
+# 起動コマンド
+CMD ["./start_viz.sh"]

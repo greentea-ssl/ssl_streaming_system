@@ -43,7 +43,8 @@ class InternalGameState(Enum):
     DIRECT_FREE_BLUE = auto()
     # INDIRECT_FREE = auto() # 必要なら
     TIMEOUT = auto()
-    BALL_PLACEMENT = auto()
+    BALL_PLACEMENT_YELLOW = auto()
+    BALL_PLACEMENT_BLUE = auto()
 
 class Orchestrator(threading.Thread):
     def __init__(self,

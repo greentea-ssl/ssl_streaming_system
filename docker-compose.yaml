@@ -8,9 +8,26 @@ services:
     volumes:
       - ./config/config_orchestrator.yaml:/app/config/config_orchestrator.yaml:ro
       - ./config/config_priority.yaml:/app/config/config_priority.yaml:ro
+      - ./orchestrator:/app/orchestrator:ro # オーケストレーターのソースコードをマウント
       # (オプション) ログなどをホストに出力したい場合
       # - ./logs/orchestrator:/app/logs
     restart: unless-stopped
 
-  # --- audio_playback など、他のサービスも必要に応じてここに追加 ---
-  # ... (省略) ...
+  field_viz:
+      build:
+        context: .
+        dockerfile: Dockerfile.viz # 可視化サービス用のDockerfile
+      container_name: ssl_field_viz
+      network_mode: host # ホストネットワーク（オーケストレーターと通信するため）
+      environment:
+        - ZMQ_SUBSCRIBER_URI=tcp://localhost:5555 # オーケストレーターのZMQ URI
+        - WEBSOCKET_PORT=8765
+        - HTTP_PORT=8090
+      ports:
+        - "8090:8090" # HTTPサーバー（network_mode: hostでは冗長だが、明示的に記述）
+        - "8765:8765" # WebSocketサーバー
+      depends_on:
+        - orchestrator
+      restart: unless-stopped
+      volumes:
+      - ./placement_visualizer:/app/viz:ro
