@@ -9,24 +9,56 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
+
+<style>
+  /* 十字マーカーのスタイル */
+  .crosshair {
+      position: absolute;
+      pointer-events: none; /* マウスイベントを下の要素に通過させる */
+  }
+  .crosshair::before, .crosshair::after {
+      content: '';
+      position: absolute;
+      background-color: red;
+  }
+  .crosshair::before {
+      width: 1px;
+      height: 11px;
+      left: 50%;
+      top: calc(50% - 5px);
+  }
+  .crosshair::after {
+      width: 11px;
+      height: 1px;
+      top: 50%;
+      left: calc(50% - 5px);
+  }
+</style>
+</head>
+
 <body>
     <div id="root"></div>
     
     <script type="text/babel">
         // React フックをインポート
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
         
 
         const FieldVisualization = () => {
           
           // フィールドの寸法（mm単位、RoboCup SSLフィールドの標準寸法を使用）
-          const [fieldLength, setFieldLength] = useState(1200); // mm
-          const [fieldWidth, setFieldWidth] = useState(900);   // mm
+          const [fieldLength, setFieldLength] = useState(12000); // mm
+          const [fieldWidth, setFieldWidth] = useState(9000);   // mm
           
           const [placementLocation, setPlacementLocation] = useState(null);
+          const [mousePosition, setMousePosition] = useState(null);
+          const [clickPosition, setClickPosition] = useState(null);
           const [eventHistory, setEventHistory] = useState([]);
           const [connected, setConnected] = useState(false);
           const [error, setError] = useState(null);
+
+          // フィールドへの参照
+          const fieldRef = useRef(null);
 
           
           // フィールドサイズの変更ハンドラー
@@ -41,6 +73,55 @@
             const value = parseInt(e.target.value, 10);
             if (!isNaN(value) && value > 0) {
               setFieldWidth(value);
+            }
+          };
+
+          
+          // ピクセル座標からフィールド座標（mm）に変換する関数
+          const pixelToFieldCoordinates = (pixelX, pixelY) => {
+            if (!fieldRef.current) return null;
+            
+            const rect = fieldRef.current.getBoundingClientRect();
+            
+            // ピクセル座標から正規化座標（0～1）に変換
+            const normalizedX = (pixelX - rect.left) / rect.width;
+            const normalizedY = (pixelY - rect.top) / rect.height;
+            
+            // 正規化座標からフィールド座標（mm）に変換
+            // 座標系は中心が原点(0,0)
+            const fieldX = (normalizedX * fieldLength) - (fieldLength / 2);
+            const fieldY = (normalizedY * fieldWidth) - (fieldWidth / 2);
+            
+            return { x: fieldX, y: fieldY };
+          };
+
+          // マウス位置をピクセルから実際のフィールド座標（メートル）に変換
+          const handleMouseMove = (e) => {
+            if (!fieldRef.current) return;
+            
+            const rect = fieldRef.current.getBoundingClientRect();
+            
+            // ピクセル座標から正規化座標（0～1）に変換
+            const normalizedX = (e.clientX - rect.left) / rect.width;
+            const normalizedY = (e.clientY - rect.top) / rect.height;
+            
+            // 正規化座標からフィールド座標（メートル）に変換
+            // 座標系は中心が原点(0,0)
+            const fieldX = (normalizedX * fieldLength) - (fieldLength / 2);
+            const fieldY = (normalizedY * fieldWidth) - (fieldWidth / 2);
+            
+            setMousePosition({ x: fieldX, y: fieldY });
+          };
+          
+          const handleMouseLeave = () => {
+            setMousePosition(null);
+          };
+
+          // フィールドクリック時の処理
+          const handleFieldClick = (e) => {
+            const coordinates = pixelToFieldCoordinates(e.clientX, e.clientY);
+            if (coordinates) {
+              setClickPosition(coordinates);
             }
           };
 
@@ -202,7 +283,14 @@
                 {/* フィールド可視化 */}
                 <div className="w-2/3 mr-4">
                   <div className="bg-white p-4 rounded shadow">
-                    <div className="relative" style={{ width: '100%', paddingBottom: `${(fieldWidth / fieldLength) * 100}%` }}>
+                    <div 
+                      ref={fieldRef}
+                      className="relative" 
+                      style={{ width: '100%', paddingBottom: `${(fieldWidth / fieldLength) * 100}%` }}
+                      onMouseMove={handleMouseMove}
+                      onMouseLeave={handleMouseLeave}
+                      onClick={handleFieldClick}
+                    >
                       {/* サッカーフィールド */}
                       <div className="absolute inset-0 border-2 border-white bg-green-600">
                         {/* センターライン */}
@@ -226,6 +314,26 @@
                             style={{
                               left: `${((placementLocation.x + fieldLength/2) / fieldLength) * 100}%`,
                               top: `${((placementLocation.y + fieldWidth/2) / fieldWidth) * 100}%`
+                            }}
+                          ></div>
+                        )}
+                        {/* マウス位置を表示 */}
+                        {mousePosition && (
+                          <div 
+                            className="absolute w-3 h-3 bg-blue-500 opacity-70 rounded-full transform -translate-x-1/2 -translate-y-1/2"
+                            style={{
+                              left: `${((mousePosition.x + fieldLength/2) / fieldLength) * 100}%`,
+                              top: `${((mousePosition.y + fieldWidth/2) / fieldWidth) * 100}%`
+                            }}
+                          ></div>
+                        )}
+                        {/* クリック位置を十字で表示 */}
+                        {clickPosition && (
+                          <div 
+                            className="crosshair w-10 h-10 transform -translate-x-1/2 -translate-y-1/2"
+                            style={{
+                              left: `${((clickPosition.x + fieldLength/2) / fieldLength) * 100}%`,
+                              top: `${((clickPosition.y + fieldWidth/2) / fieldWidth) * 100}%`
                             }}
                           ></div>
                         )}
@@ -256,17 +364,46 @@
                   
                   {/* 座標表示 */}
                   <div className="bg-white mt-4 p-4 rounded shadow">
-                    <h3 className="font-semibold mb-2">現在の配置位置:</h3>
-                    {placementLocation ? (
-                      <p>
-                        X: {placementLocation.x.toFixed(2)} mm, 
-                        Y: {placementLocation.y.toFixed(2)} mm
-                      </p>
-                    ) : (
-                      <p>配置位置が受信されていません</p>
-                    )}
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <h3 className="font-semibold mb-2">現在の配置位置:</h3>
+                        {placementLocation ? (
+                          <p>
+                            X: {placementLocation.x.toFixed(2)} m, 
+                            Y: {placementLocation.y.toFixed(2)} m
+                          </p>
+                        ) : (
+                          <p>配置位置が受信されていません</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <h3 className="font-semibold mb-2">マウス位置:</h3>
+                        {mousePosition ? (
+                          <p>
+                            X: {mousePosition.x.toFixed(2)} m, 
+                            Y: {mousePosition.y.toFixed(2)} m
+                          </p>
+                        ) : (
+                          <p>フィールド上にマウスを置いてください</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <h3 className="font-semibold mb-2">クリック位置:</h3>
+                        {clickPosition ? (
+                          <p>
+                            X: {clickPosition.x.toFixed(2)} m, 
+                            Y: {clickPosition.y.toFixed(2)} m
+                          </p>
+                        ) : (
+                          <p>フィールド上をクリックしてください</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
+                
                 
                 {/* イベント履歴 */}
                 <div className="w-1/3">
