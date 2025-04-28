@@ -16,20 +16,38 @@
         // React フックをインポート
         const { useState, useEffect } = React;
         
-        // フィールドの寸法（メートル単位、RoboCup SSLフィールドの標準寸法を使用）
-        const FIELD_LENGTH = 12; // メートル
-        const FIELD_WIDTH = 9;   // メートル
 
         const FieldVisualization = () => {
+          
+          // フィールドの寸法（mm単位、RoboCup SSLフィールドの標準寸法を使用）
+          const [fieldLength, setFieldLength] = useState(1200); // mm
+          const [fieldWidth, setFieldWidth] = useState(900);   // mm
+          
           const [placementLocation, setPlacementLocation] = useState(null);
           const [eventHistory, setEventHistory] = useState([]);
           const [connected, setConnected] = useState(false);
           const [error, setError] = useState(null);
 
+          
+          // フィールドサイズの変更ハンドラー
+          const handleFieldLengthChange = (e) => {
+            const value = parseInt(e.target.value, 10);
+            if (!isNaN(value) && value > 0) {
+              setFieldLength(value);
+            }
+          };
+
+          const handleFieldWidthChange = (e) => {
+            const value = parseInt(e.target.value, 10);
+            if (!isNaN(value) && value > 0) {
+              setFieldWidth(value);
+            }
+          };
+
           // テスト用のイベントシミュレーション関数
           const simulateEvent = () => {
-            const randomX = (Math.random() * FIELD_LENGTH) - (FIELD_LENGTH/2);
-            const randomY = (Math.random() * FIELD_WIDTH) - (FIELD_WIDTH/2);
+            const randomX = (Math.random() * fieldLength) - (fieldLength/2);
+            const randomY = (Math.random() * fieldWidth) - (fieldWidth/2);
             
             const newEvent = {
               timestamp: Date.now() / 1000,
@@ -147,25 +165,44 @@
             };
           }, []);
 
-          // フィールド座標（メートル）をピクセル座標に変換
-          const fieldToPixel = (x, y, fieldWidth, fieldHeight) => {
-            // 中心原点から左上原点に変換し、
-            // コンテナに合わせてスケーリング
-            const pixelX = ((x + FIELD_LENGTH/2) / FIELD_LENGTH) * fieldWidth;
-            const pixelY = ((y + FIELD_WIDTH/2) / FIELD_WIDTH) * fieldHeight;
-            
-            return { x: pixelX, y: pixelY };
-          };
-
           return (
             <div className="flex flex-col items-center p-4 bg-gray-100 min-h-screen">
               <h1 className="text-2xl font-bold mb-2">サッカーフィールド配置可視化</h1>
+              
+              {/* フィールドサイズ設定 */}
+              <div className="w-full max-w-6xl mb-4 bg-white p-4 rounded shadow">
+                <h3 className="font-semibold mb-2">フィールドサイズ設定</h3>
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex items-center">
+                    <label htmlFor="fieldLength" className="mr-2">フィールド長さ:</label>
+                    <input 
+                      id="fieldLength"
+                      type="number" 
+                      value={fieldLength} 
+                      onChange={handleFieldLengthChange}
+                      className="w-24 px-2 py-1 border rounded" 
+                    />
+                    <span className="ml-1">mm</span>
+                  </div>
+                  <div className="flex items-center">
+                    <label htmlFor="fieldWidth" className="mr-2">フィールド幅:</label>
+                    <input 
+                      id="fieldWidth"
+                      type="number" 
+                      value={fieldWidth} 
+                      onChange={handleFieldWidthChange}
+                      className="w-24 px-2 py-1 border rounded" 
+                    />
+                    <span className="ml-1">mm</span>
+                  </div>
+                </div>
+              </div>
               
               <div className="flex w-full max-w-6xl">
                 {/* フィールド可視化 */}
                 <div className="w-2/3 mr-4">
                   <div className="bg-white p-4 rounded shadow">
-                    <div className="relative" style={{ width: '100%', paddingBottom: '75%' }}>
+                    <div className="relative" style={{ width: '100%', paddingBottom: `${(fieldWidth / fieldLength) * 100}%` }}>
                       {/* サッカーフィールド */}
                       <div className="absolute inset-0 border-2 border-white bg-green-600">
                         {/* センターライン */}
@@ -187,8 +224,8 @@
                           <div 
                             className="absolute w-4 h-4 bg-orange-500 rounded-full transform -translate-x-1/2 -translate-y-1/2"
                             style={{
-                              left: `${((placementLocation.x + FIELD_LENGTH/2) / FIELD_LENGTH) * 100}%`,
-                              top: `${((placementLocation.y + FIELD_WIDTH/2) / FIELD_WIDTH) * 100}%`
+                              left: `${((placementLocation.x + fieldLength/2) / fieldLength) * 100}%`,
+                              top: `${((placementLocation.y + fieldWidth/2) / fieldWidth) * 100}%`
                             }}
                           ></div>
                         )}
@@ -222,8 +259,8 @@
                     <h3 className="font-semibold mb-2">現在の配置位置:</h3>
                     {placementLocation ? (
                       <p>
-                        X: {placementLocation.x.toFixed(2)} m, 
-                        Y: {placementLocation.y.toFixed(2)} m
+                        X: {placementLocation.x.toFixed(2)} mm, 
+                        Y: {placementLocation.y.toFixed(2)} mm
                       </p>
                     ) : (
                       <p>配置位置が受信されていません</p>
