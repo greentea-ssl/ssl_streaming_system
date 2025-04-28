@@ -1,0 +1,5 @@
+# ZeroMQ Publisher が bind する URI (他のモジュールが接続に来るアドレス)
+zmq_publisher_uri: "tcp://*:5555"
+
+# GameStateUpdate メッセージを publish する間隔 (秒単位、float)
+state_update_interval_sec: 2.0
