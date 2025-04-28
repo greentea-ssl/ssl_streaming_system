@@ -3,6 +3,8 @@ proto/
 __pycache__/
 *.py[cod]
 *$py.class
+*.wav
+*.mp3
 
 # C extensions
 *.so
