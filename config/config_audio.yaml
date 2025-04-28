@@ -1,0 +1,105 @@
+# 音声再生モジュールの設定ファイル
+
+# Orchestrator の ZeroMQ Publisher に接続するための URI
+# (コマンドライン引数ではなく、こちらで指定する方式に変更)
+zmq_connect_uri: "tcp://localhost:5555"
+
+# デフォルトのアクション (event_actions に定義がない event_type で使用)
+DEFAULT_ACTION:
+  action: ignore # 不明なイベントは基本的に無視する
+
+# 各イベントタイプに対するアクション定義
+event_actions:
+
+  # --- Stage / Command 関連 ---
+  STAGE_NORMAL_FIRST_HALF:
+    action: play_file
+    files:
+      - path: "sound/zunda/STAGE_FIRST_HALF.wav" # 拡張子まで書く
+  STAGE_NORMAL_HALF_TIME:
+    action: play_file
+    files:
+      - path: "sounds/zunda/STAGE_HALF_TIME.wav"
+  COMMAND_STOP:
+    action: play_file
+    files:
+      - path: "sounds/zunda/COMMAND_STOP.wav"
+  COMMAND_HALT:
+    action: play_file
+    files:
+      - path: "sounds/zunda/COMMAND_HALT.wav"
+  COMMAND_TIMEOUT_YELLOW:
+    action: play_file
+    files:
+      - path: "sounds/zunda/COMMAND_TIMEOUT_YELLOW.wav"
+  COMMAND_TIMEOUT_BLUE:
+    action: play_file
+    files:
+      - path: "sounds/zunda/COMMAND_TIMEOUT_BLUE.wav"
+  COMMAND_KICKOFF_START_YELLOW:
+    action: play_file
+    files:
+      - path: "sounds/zunda/COMMAND_KICKOFF_START_YELLOW.wav"
+  COMMAND_KICKOFF_START_BLUE:
+    action: play_file
+    files:
+      - path: "sounds/zunda/COMMAND_KICKOFF_START_BLUE.wav"
+
+  # --- GameEvent 関連 ---
+  EVENT_GOAL_CONFIRMED_YELLOW:
+    action: play_file
+    files:
+      # weight を使って再生頻度を調整する例 (合計値で正規化される)
+      - path: "sounds/zunda/EVENT_GOAL_CONFIRMED_YELLOW.wav"
+        weight: 10 # よく使われる
+      #   weight: 7 # よく使われる
+      # - path: "sounds/zunda/yellow_goal_excited.wav"
+      #   weight: 3 # たまに使う
+      # - path: "sounds/zunda/yellow_goal_super.wav"
+      #   weight: 1 # ごく稀に使う
+  EVENT_GOAL_CONFIRMED_BLUE:
+    action: play_file
+    files:
+      - path: "sounds/zunda/EVENT_GOAL_CONFIRMED_BLUE.wav"
+        weight: 10 # よく使われる
+
+  EVENT_BALL_LEFT_TOUCHLINE_YELLOW:
+    action: play_file
+    files:
+      - path: "sounds/zunda/EVENT_BALL_LEFT_TOUCHLINE_YELLOW.wav"
+  EVENT_BALL_LEFT_TOUCHLINE_BLUE:
+    action: play_file
+    files:
+      - path: "sounds/zunda/EVENT_BALL_LEFT_TOUCHLINE_BLUE.wav"
+  EVENT_BALL_LEFT_GOALLINE_YELLOW:
+    action: play_file
+    files:
+      - path: "sounds/zunda/EVENT_BALL_LEFT_GOALLINE_YELLOW.wav"
+  EVENT_BALL_LEFT_GOALLINE_BLUE:
+    action: play_file
+    files:
+      - path: "sounds/zunda/EVENT_BALL_LEFT_GOALLINE_BLUE.wav"
+  EVENT_PLACEMENT_FAILED_YELLOW:
+    action: play_file
+    files:
+      - path: "sounds/zunda/EVENT_PLACEMENT_FAILED_YELLOW.wav"
+  EVENT_PLACEMENT_FAILED_BLUE:
+    action: play_file
+    files:
+      - path: "sounds/zunda/EVENT_PLACEMENT_FAILED_BLUE.wav"
+  EVENT_PLACEMENT_SUCCEEDED_YELLOW:
+    action: play_file
+    files:
+      - path: "sounds/zunda/EVENT_PLACEMENT_SUCCEEDED_YELLOW.wav"
+  EVENT_PLACEMENT_SUCCEEDED_BLUE:
+    action: play_file
+    files:
+      -path: "sounds/zunda/EVENT_PLACEMENT_SUCCEEDED_BLUE.wav"
+  EVENT_BOT_PUSHING_BLUE:
+    action: play_file
+    files:
+      - path: "sounds/zunda/EVENT_BOT_PUSHING_BLUE.wav"
+  EVENT_BOT_PUSHING_YELLOW:
+    action: play_file
+    files:
+      - path: "sounds/zunda/EVENT_BOT_PUSHING_YELLOW.wav"
