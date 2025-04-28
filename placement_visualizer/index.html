@@ -19,17 +19,17 @@
   .crosshair::before, .crosshair::after {
       content: '';
       position: absolute;
-      background-color: red;
+      background-color: orange;
   }
   .crosshair::before {
-      width: 1px;
-      height: 11px;
+      width: 5px;
+      height: 15px;
       left: 50%;
       top: calc(50% - 5px);
   }
   .crosshair::after {
-      width: 11px;
-      height: 1px;
+      width: 15px;
+      height: 5px;
       top: 50%;
       left: calc(50% - 5px);
   }
@@ -127,15 +127,18 @@
 
           // テスト用のイベントシミュレーション関数
           const simulateEvent = () => {
-            const randomX = (Math.random() * fieldLength) - (fieldLength/2);
-            const randomY = (Math.random() * fieldWidth) - (fieldWidth/2);
+            // クリック位置があれば、その位置でシミュレーション
+            const position = clickPosition || {
+              x: (Math.random() * fieldLengthMeters) - (fieldLengthMeters/2),
+              y: (Math.random() * fieldWidthMeters) - (fieldWidthMeters/2)
+            };
             
             const newEvent = {
               timestamp: Date.now() / 1000,
               event_type: "EVENT_PLACEMENT_SUCCEEDED_YELLOW",
               data: {
                 team: "YELLOW",
-                location: { x: randomX, y: randomY }
+                location: position
               }
             };
             
