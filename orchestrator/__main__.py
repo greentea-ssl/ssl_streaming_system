@@ -42,9 +42,14 @@ if __name__ == '__main__':
     print("Starting commentary system (Listener + Orchestrator)...") # メッセージを修正
     message_queue = queue.Queue()
 
+    # 環境変数からgcのマルチキャストグループ, ポート番号を取得
+    multicast_group = os.environ.get('GC_MULTICAST_GROUP', '224.5.23.1')
+    multicast_port = os.environ.get('GC_MULTICAST_PORT', '10003')
+    # 整数にキャスト
+    multicast_port = int(multicast_port)
+    
     # リスナー起動
-    # listener = EventListener(message_queue, interface_ip='YOUR_INTERFACE_IP')
-    listener = EventListener(message_queue)
+    listener = EventListener(message_queue, multicast_group=multicast_group, multicast_port=multicast_port)
     listener.start()
 
     # オーケストレーター起動

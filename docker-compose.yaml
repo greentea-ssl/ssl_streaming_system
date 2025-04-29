@@ -11,6 +11,9 @@ services:
       - ./orchestrator:/app/orchestrator:ro # オーケストレーターのソースコードをマウント
       # (オプション) ログなどをホストに出力したい場合
       # - ./logs/orchestrator:/app/logs
+    environment:
+      - GC_MULTICAST_GROUP=224.5.23.1
+      - GC_MULTICAST_PORT=10003
     restart: unless-stopped
 
   field_viz:
