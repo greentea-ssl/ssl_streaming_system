@@ -13,15 +13,28 @@ ENV POETRY_HOME="/opt/poetry" \
 
 # Poetryのインストールに必要なパッケージとPoetry本体をインストール
 # ARGで指定したバージョンをインストール時に使用する
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
-    && echo "Installing Poetry version ${POETRY_VERSION}" \
+RUN apt-get update && apt-get install -y --no-install-recommends curl unzip
+RUN echo "Installing Poetry version ${POETRY_VERSION}" \
     && curl -sSL https://install.python-poetry.org | python3 - --version ${POETRY_VERSION} \
-    && apt-get remove -y --purge curl \
+    # インストールされたバージョンを確認 (任意)
+    && poetry --version
+
+# protobufをソースからインストール
+# RUN curl -Lo protoc.zip "https://github.com/protocolbuffers/protobuf/releases/latest/download/protoc-30.2-linux-x86_64.zip" \
+#     && unzip protoc.zip -d /usr/local/bin/ \
+#     && rm protoc.zip \
+#     && echo "Protoc installed successfully. Version: $(protoc --version)"
+RUN apt-get install -y --no-install-recommends \
+    protobuf-compiler \
+    libprotobuf-dev \
+    python3-protobuf \
+    && echo "Protobuf installed successfully. Version: $(protoc --version)"
+
+RUN apt-get remove -y --purge curl unzip \
     && apt-get autoremove -y --purge \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
-    # インストールされたバージョンを確認 (任意)
-    && poetry --version
+    && echo "Cleanup completed." \
 
 # 作業ディレクトリを設定
 WORKDIR /app
@@ -35,7 +48,13 @@ RUN poetry install --no-root --no-interaction --no-ansi
 # アプリケーションコードと、protoディレクトリ全体をコピー
 COPY orchestrator/ ./orchestrator/
 COPY common/ ./common/
-COPY proto/ ./proto/
+# COPY proto/ ./proto/
+
+# protoディレクトリをコンパイルして、Pythonコードを生成
+COPY ssl-game-controller/proto/ ./ssl-game-controller/proto/
+RUN mkdir -p /app/proto \
+    && protoc --proto_path=ssl-game-controller/proto/ --python_out=/app/proto/ --pyi_out=/app/proto/ ssl-game-controller/proto/*/*.proto
+
 
 # コンテナ起動時に実行されるコマンド
 CMD ["python", "-u", "-m","orchestrator", \
