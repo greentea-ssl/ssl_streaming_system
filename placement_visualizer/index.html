@@ -485,8 +485,9 @@
                         {/* 配置位置をオレンジ色の円で表示 */}
                         {placementLocation && (
                           <div 
-                            className="absolute w-4 h-4 bg-orange-500 rounded-full transform -translate-x-1/2 -translate-y-1/2"
+                            className="absolute aspect-square bg-orange-500 rounded-full transform -translate-x-1/2 -translate-y-1/2"
                             style={{
+                              width: '5%',
                               left: `${((placementLocation.x + fieldLength/2) / fieldLength) * 100}%`,
                               top: `${((- placementLocation.y + fieldWidth/2) / fieldWidth) * 100}%`
                             }}
