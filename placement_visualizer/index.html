@@ -33,6 +33,69 @@
       top: 50%;
       left: calc(50% - 5px);
   }
+  
+  /* 座標軸のスタイル */
+  .coordinate-axis {
+    position: absolute;
+    background-color: black;
+    transform-origin: center;
+  }
+  
+  /* 水平方向の軸（X軸用） */
+  .axis-horizontal {
+    height: 0.5px;
+    top: 50%;
+    left: 50%;
+    transform: translateY(-50%);
+  }
+  
+  /* 垂直方向の軸（Y軸用） */
+  .axis-vertical {
+    width: 0.5px;
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  
+  /* 矢印の先端 */
+  .arrow-tip {
+    position: absolute;
+    background-color: black;
+    width: 3px;
+    height: 0.5px;
+  }
+  
+  /* X軸矢印の先端 - 右上 */
+  .tip-right-up {
+    right: 0;
+    top: 0;
+    transform: rotate(-45deg);
+  }
+  
+  /* X軸矢印の先端 - 右下 */
+  .tip-right-down {
+    right: 0;
+    bottom: 0;
+    transform: rotate(45deg);
+  }
+  
+  /* Y軸矢印の先端 - 上左 */
+  .tip-up-left {
+    top: 0;
+    left: 0;
+    transform: rotate(45deg);
+    width: 0.5px;
+    height: 3px;
+  }
+  
+  /* Y軸矢印の先端 - 上右 */
+  .tip-up-right {
+    top: 0;
+    right: 0;
+    transform: rotate(-45deg);
+    width: 0.5px;
+    height: 3px;
+  }
 </style>
 </head>
 
@@ -43,6 +106,31 @@
         // React フックをインポート
         const { useState, useEffect, useRef } = React;
         
+        // 座標軸のコンポーネント
+        // 軸の長さはコード内で固定値として定義（外部から隠す）
+        const CoordinateAxes = () => {
+          // 軸の長さを固定値として定義
+          const xAxisLength = 15;
+          const yAxisLength = 15;
+          
+          return (
+            <>
+              {/* X軸 */}
+              <div className="coordinate-axis axis-horizontal" style={{ width: `${xAxisLength}px` }}>
+                {/* 矢印の先端 */}
+                <div className="arrow-tip tip-right-up"></div>
+                <div className="arrow-tip tip-right-down"></div>
+              </div>
+              
+              {/* Y軸 */}
+              <div className="coordinate-axis axis-vertical" style={{ height: `${yAxisLength}px`, top: `calc(50% - ${yAxisLength}px)` }}>
+                {/* 矢印の先端 */}
+                <div className="arrow-tip tip-up-left"></div>
+                <div className="arrow-tip tip-up-right"></div>
+              </div>
+            </>
+          );
+        };
 
         const FieldVisualization = () => {
           
@@ -55,6 +143,7 @@
           const [showCenterCircle, setShowCenterCircle] = useState(true);
           const [showPenaltyAreas, setShowPenaltyAreas] = useState(true);
           const [showGoalAreas, setShowGoalAreas] = useState(true);
+          const [showCoordinateAxes, setShowCoordinateAxes] = useState(true);
           
           const [placementLocation, setPlacementLocation] = useState(null);
           const [mousePosition, setMousePosition] = useState(null);
@@ -336,6 +425,16 @@
                         />
                         <label htmlFor="goalAreas">ゴールエリア</label>
                       </div>
+                      <div className="flex items-center">
+                        <input 
+                          id="coordinateAxes" 
+                          type="checkbox" 
+                          checked={showCoordinateAxes} 
+                          onChange={(e) => setShowCoordinateAxes(e.target.checked)}
+                          className="mr-2"
+                        />
+                        <label htmlFor="coordinateAxes">座標軸</label>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -382,6 +481,7 @@
                             <div className="absolute top-3/8 right-0 w-1/12 h-1/4 border-l-2 border-white"></div>
                           </>
                         )}
+                        {showCoordinateAxes && <CoordinateAxes />}
                         {/* 配置位置をオレンジ色の円で表示 */}
                         {placementLocation && (
                           <div 
@@ -444,8 +544,8 @@
                         <h3 className="font-semibold mb-2">現在の配置位置:</h3>
                         {placementLocation ? (
                           <p>
-                            X: {placementLocation.x.toFixed(2)} m, 
-                            Y: {placementLocation.y.toFixed(2)} m
+                            X: {placementLocation.x.toFixed(2)} mm, 
+                            Y: {placementLocation.y.toFixed(2)} mm
                           </p>
                         ) : (
                           <p>配置位置が受信されていません</p>
@@ -456,8 +556,8 @@
                         <h3 className="font-semibold mb-2">マウス位置:</h3>
                         {mousePosition ? (
                           <p>
-                            X: {mousePosition.x.toFixed(2)} m, 
-                            Y: {mousePosition.y.toFixed(2)} m
+                            X: {mousePosition.x.toFixed(2)} mm, 
+                            Y: {mousePosition.y.toFixed(2)} mm
                           </p>
                         ) : (
                           <p>フィールド上にマウスを置いてください</p>
@@ -468,8 +568,8 @@
                         <h3 className="font-semibold mb-2">クリック位置:</h3>
                         {clickPosition ? (
                           <p>
-                            X: {clickPosition.x.toFixed(2)} m, 
-                            Y: {clickPosition.y.toFixed(2)} m
+                            X: {clickPosition.x.toFixed(2)} mm, 
+                            Y: {clickPosition.y.toFixed(2)} mm
                           </p>
                         ) : (
                           <p>フィールド上をクリックしてください</p>
