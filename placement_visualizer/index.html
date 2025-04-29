@@ -147,7 +147,7 @@
           
           const [placementLocation, setPlacementLocation] = useState(null);
           const [mousePosition, setMousePosition] = useState(null);
-          const [clickPosition, setClickPosition] = useState(null);
+          const [ballSize, setBallSize] = useState(10); // %
           const [eventHistory, setEventHistory] = useState([]);
           const [connected, setConnected] = useState(false);
           const [error, setError] = useState(null);
@@ -168,6 +168,13 @@
             const value = parseInt(e.target.value, 10);
             if (!isNaN(value) && value > 0) {
               setFieldWidth(value);
+            }
+          };
+
+          const handleBallSizeChange = (e) => {
+            const value = parseInt(e.target.value, 10);
+            if (!isNaN(value) && value > 0 && value <= 100) {
+              setBallSize(value);
             }
           };
 
@@ -212,27 +219,23 @@
             setMousePosition(null);
           };
 
-          // フィールドクリック時の処理
-          const handleFieldClick = (e) => {
-            const coordinates = pixelToFieldCoordinates(e.clientX, e.clientY);
-            if (coordinates) {
-              setClickPosition(coordinates);
-            }
-          };
-
           // テスト用のイベントシミュレーション関数
           const simulateEvent = () => {
-            // クリック位置があれば、その位置でシミュレーション
-            const position = clickPosition || {
-              x: (Math.random() * fieldLengthMeters) - (fieldLengthMeters/2),
-              y: (Math.random() * fieldWidthMeters) - (fieldWidthMeters/2)
-            };
-            
+            // ランダムな位置を生成
+            const randomX = Math.random() * fieldLength - (fieldLength / 2);
+            const randomY = Math.random() * fieldWidth - (fieldWidth / 2);
+            const position = { x: randomX, y: randomY };
+
+            // ランダムなチームを選択
+            const teams = ["YELLOW", "BLUE"];
+            const randomTeam = teams[Math.floor(Math.random() * teams.length)];
+            const eventType = randomTeam === "YELLOW" ? "EVENT_PLACEMENT_SUCCEEDED_YELLOW" : "EVENT_PLACEMENT_SUCCEEDED_BLUE";
+            // イベントを生成
             const newEvent = {
               timestamp: Date.now() / 1000,
-              event_type: "EVENT_PLACEMENT_SUCCEEDED_YELLOW",
+              event_type: eventType,
               data: {
-                team: "YELLOW",
+                team: randomTeam,
                 location: position
               }
             };
@@ -435,6 +438,18 @@
                         />
                         <label htmlFor="coordinateAxes">座標軸</label>
                       </div>
+                      {/* ボールサイズ設定 */}
+                      <div className="flex items-center">
+                        <label htmlFor="ballSize" className="mr-2 w-24">ボールサイズ:</label>
+                        <input 
+                          id="ballSize"
+                          type="number" 
+                          value={ballSize} 
+                          onChange={handleBallSizeChange}
+                          className="w-24 px-2 py-1 border rounded" 
+                        />
+                        <span className="ml-1">%</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -450,7 +465,6 @@
                       style={{ width: '100%', paddingBottom: `${(fieldWidth / fieldLength) * 100}%` }}
                       onMouseMove={handleMouseMove}
                       onMouseLeave={handleMouseLeave}
-                      onClick={handleFieldClick}
                     >
                       {/* サッカーフィールド */}
                       <div className="absolute inset-0 border-2 border-white bg-green-600">
@@ -487,7 +501,7 @@
                           <div 
                             className="absolute aspect-square bg-orange-500 rounded-full transform -translate-x-1/2 -translate-y-1/2"
                             style={{
-                              width: '5%',
+                              width: `${ballSize}%`,
                               left: `${((placementLocation.x + fieldLength/2) / fieldLength) * 100}%`,
                               top: `${((- placementLocation.y + fieldWidth/2) / fieldWidth) * 100}%`
                             }}
@@ -500,16 +514,6 @@
                             style={{
                               left: `${((mousePosition.x + fieldLength/2) / fieldLength) * 100}%`,
                               top: `${((- mousePosition.y + fieldWidth/2) / fieldWidth) * 100}%`
-                            }}
-                          ></div>
-                        )}
-                        {/* クリック位置を十字で表示 */}
-                        {clickPosition && (
-                          <div 
-                            className="crosshair w-10 h-10 transform -translate-x-1/2 -translate-y-1/2"
-                            style={{
-                              left: `${((clickPosition.x + fieldLength/2) / fieldLength) * 100}%`,
-                              top: `${((- clickPosition.y + fieldWidth/2) / fieldWidth) * 100}%`
                             }}
                           ></div>
                         )}
@@ -564,18 +568,6 @@
                           <p>フィールド上にマウスを置いてください</p>
                         )}
                       </div>
-                      
-                      <div>
-                        <h3 className="font-semibold mb-2">クリック位置:</h3>
-                        {clickPosition ? (
-                          <p>
-                            X: {clickPosition.x.toFixed(2)} mm, 
-                            Y: {clickPosition.y.toFixed(2)} mm
-                          </p>
-                        ) : (
-                          <p>フィールド上をクリックしてください</p>
-                        )}
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -600,8 +592,8 @@
                               </span>
                             </div>
                             <div className="text-sm">
-                              X: {event.location.x.toFixed(2)} m, 
-                              Y: {event.location.y.toFixed(2)} m
+                              X: {event.location.x.toFixed(2)} mm, 
+                              Y: {event.location.y.toFixed(2)} mm
                             </div>
                           </li>
                         ))}
