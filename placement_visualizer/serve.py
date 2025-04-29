@@ -28,7 +28,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 while True:
     try:
         with socketserver.TCPServer(("", PORT), Handler) as httpd:
-            logger.info(f"Serving HTTP at http://0.0.0.0:{PORT}")
+            logger.info(f"Serving HTTP at localhost:{PORT}")
             httpd.serve_forever()
     except OSError as e:
         if "Address already in use" in str(e):
