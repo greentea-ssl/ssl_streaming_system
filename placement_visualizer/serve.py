@@ -3,6 +3,7 @@ import http.server
 import socketserver
 import os
 import logging
+import time
 
 # ログ設定
 logging.basicConfig(
@@ -13,7 +14,7 @@ logger = logging.getLogger("http_server")
 
 # 環境変数から設定を読み込むか、デフォルト値を使用
 PORT = int(os.environ.get('HTTP_PORT', 8080))
-DIRECTORY = os.environ.get('SERVE_DIRECTORY')
+DIRECTORY = os.environ.get('SERVE_DIRECTORY', '.')
 
 # 作業ディレクトリを変更
 os.chdir(DIRECTORY)
@@ -24,6 +25,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         logger.info("%s - %s", self.address_string(), format % args)
 
 # すべてのインターフェイスでリッスン
-with socketserver.TCPServer(("", PORT), Handler) as httpd:
-    logger.info(f"Serving HTTP at http://0.0.0.0:{PORT}")
-    httpd.serve_forever()
+while True:
+    try:
+        with socketserver.TCPServer(("", PORT), Handler) as httpd:
+            logger.info(f"Serving HTTP at http://0.0.0.0:{PORT}")
+            httpd.serve_forever()
+    except OSError as e:
+        if "Address already in use" in str(e):
+            logger.warning(f"Port {PORT} is in use. Retrying in 5 seconds...")
+            time.sleep(5)
+        else:
+            logger.error(f"Unexpected error: {e}")
+            break
